@@ -1,41 +1,51 @@
-import { NextResponse } from 'next/server'
+// src/app/api/credits/route.ts
 
-export const OPERATION_COSTS = {
-  chat: 1,
-  imageGeneration: 10,
-  musicGeneration: 15,
+import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+
+const CREDITS_COOKIE_NAME = 'nicogpt_credits'
+const LAST_RESET_COOKIE_NAME = 'nicogpt_last_reset'
+
+// Función para obtener los créditos almacenados en las cookies
+const getCredits = () => {
+  const cookieStore = cookies()
+  const credits = cookieStore.get(CREDITS_COOKIE_NAME)?.value
+  return credits ? parseInt(credits, 10) : 50 // Valor por defecto de 50 créditos
+}
+
+// Función para actualizar los créditos en las cookies
+const setCredits = (credits: number) => {
+  const cookieStore = cookies()
+  cookieStore.set(CREDITS_COOKIE_NAME, credits.toString())
 }
 
 export async function GET() {
-  const credits = 50 // Aquí debes manejar el sistema real de créditos (por ejemplo, base de datos)
-
-  return NextResponse.json({
-    credits,
-  })
+  const credits = getCredits()
+  return NextResponse.json({ credits })
 }
 
 export async function POST(req: Request) {
   const body = await req.json()
   const { action } = body
 
-  let newCredits = 50 // Maneja aquí la actualización de créditos
+  let credits = getCredits()
 
   switch (action) {
     case 'consume':
-      newCredits -= OPERATION_COSTS.chat
+      credits -= 1
       break
     case 'image':
-      newCredits -= OPERATION_COSTS.imageGeneration
+      credits -= 10
       break
     case 'music':
-      newCredits -= OPERATION_COSTS.musicGeneration
+      credits -= 15
       break
     default:
       break
   }
 
-  return NextResponse.json({
-    credits: newCredits,
-  })
+  setCredits(credits)
+
+  return NextResponse.json({ credits })
 }
 
