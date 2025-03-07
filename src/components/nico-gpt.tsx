@@ -33,14 +33,32 @@ export default function NicoGPT() {
     fetchCredits()
   }, [])
 
-  const fetchCredits = async () => {
-    try {
-      const response = await fetch('/api/credits')
-      const data = await response.json()
-      setCredits(data.credits)
-    } catch (error) {
-      console.error('Error fetching credits:', error)
-    }
+const fetchCredits = async () => {
+  try {
+    const response = await fetch('/api/credits')
+    const data = await response.json()
+    setCredits(data.credits)
+  } catch (error) {
+    console.error('Error fetching credits:', error)
+  }
+}
+
+const consumeCredits = async (action: string) => {
+  try {
+    const response = await fetch('/api/credits', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action }),
+    })
+    const data = await response.json()
+    setCredits(data.credits)
+  } catch (error) {
+    console.error('Error consuming credits:', error)
+  }
+}
+
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
