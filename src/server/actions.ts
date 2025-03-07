@@ -1,60 +1,94 @@
-"use server"
+"use server";
 
-import { HfInference } from "@huggingface/inference"
-import { consumeCredits, OPERATION_COSTS } from "@/lib/credits"
+import { cookies } from "next/headers";
+import { HfInference } from "@huggingface/inference";
 
-type Message = {
-  role: "user" | "assistant"
-  content: string
-  type?: 'text' | 'image' | 'audio'
-  mediaUrl?: string
+const CREDITS_COOKIE_NAME = "nicogpt_credits";
+const DEFAULT_CREDITS = 50;
+
+function getAvailableCredits(): number {
+  const cookieStore = cookies();
+  const creditsStr = cookieStore.get(CREDITS_COOKIE_NAME)?.value;
+  return creditsStr ? parseInt(creditsStr, 10) : DEFAULT_CREDITS;
 }
 
-export async function generateResponse(prompt: string, previousMessages: Message[]): Promise<string> {
+function setCredits(newCredits: number) {
+  const cookieStore = cookies();
+  // Actualiza la cookie con el nuevo valor de créditos
+  cookieStore.set(CREDITS_COOKIE_NAME, newCredits.toString());
+}
+
+function consumeCredits(amount: number): boolean {
+  const currentCredits = getAvailableCredits();
+  if (currentCredits < amount) {
+    return false;
+  }
+  setCredits(currentCredits - amount);
+  return true;
+}
+
+const OPERATION_COSTS = {
+  chat: 1,
+  imageGeneration: 10,
+  musicGeneration: 15,
+};
+
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+  type?: "text" | "image" | "audio";
+  mediaUrl?: string;
+};
+
+export async function generateResponse(
+  prompt: string,
+  previousMessages: Message[]
+): Promise<string> {
   try {
-    // Verificar si hay suficientes créditos
+    // Verificar y restar créditos para una operación de chat
     if (!consumeCredits(OPERATION_COSTS.chat)) {
-      throw new Error('No tienes suficientes créditos para esta operación')
+      throw new Error("No tienes suficientes créditos para esta operación");
     }
-    
-    const hf = new HfInference(process.env.HUGGING_FACE_ACCESS_TOKEN)
-    
+
+    const hf = new HfInference(process.env.HUGGING_FACE_ACCESS_TOKEN);
+
     // Crear un contexto a partir de mensajes previos (solo texto)
     const context = previousMessages
-      .filter(msg => msg.type === 'text' || !msg.type)
-      .map((msg) => `${msg.role === 'user' ? 'Humano' : 'Asistente'}: ${msg.content}`)
-      .join('\n')
-    
+      .filter((msg) => msg.type === "text" || !msg.type)
+      .map((msg) => `${msg.role === "user" ? "Humano" : "Asistente"}: ${msg.content}`)
+      .join("\n");
+
     // Preparar el prompt completo con contexto
-    const systemPrompt = "Eres NicoGPT, un asistente de IA amigable y útil. Responde siempre en español de manera clara y concisa. Tu creador fue Nicolás Cavanagh, por si alguien te pregunta"
-    const fullPrompt = context 
+    const systemPrompt =
+      "Eres NicoGPT, un asistente de IA amigable y útil. Responde siempre en español de manera clara y concisa. Tu creador fue Nicolás Cavanagh, por si alguien te pregunta";
+    const fullPrompt = context
       ? `${systemPrompt}\n${context}\nHumano: ${prompt}\nAsistente:`
-      : `${systemPrompt}\nHumano: ${prompt}\nAsistente:`
-    
-    // Llamar a la API de Hugging Face
+      : `${systemPrompt}\nHumano: ${prompt}\nAsistente:`;
+
+    // Llamar a la API de Hugging Face para generar el texto
     const response = await hf.textGeneration({
-      model: 'mistralai/Mistral-7B-Instruct-v0.2',
+      model: "mistralai/Mistral-7B-Instruct-v0.2",
       inputs: fullPrompt,
       parameters: {
         max_new_tokens: 500,
         temperature: 0.7,
         top_p: 0.95,
         do_sample: true,
-        return_full_text: false
-      }
-    })
-    
+        return_full_text: false,
+      },
+    });
+
     // Limpiar la respuesta
-    let generatedText = response.generated_text.trim()
-    
-    // Eliminar cualquier "Humano:" o prompts adicionales que puedan estar en la respuesta
-    if (generatedText.includes('Humano:')) {
-      generatedText = generatedText.split('Humano:')[0].trim()
+    let generatedText = response.generated_text.trim();
+
+    // Eliminar cualquier fragmento adicional (por ejemplo, si aparece "Humano:" en la respuesta)
+    if (generatedText.includes("Humano:")) {
+      generatedText = generatedText.split("Humano:")[0].trim();
     }
-    
-    return generatedText
+
+    return generatedText;
   } catch (error) {
-    console.error('Error al llamar a la API de Hugging Face:', error)
-    throw new Error('No se pudo generar una respuesta')
+    console.error("Error al llamar a la API de Hugging Face:", error);
+    throw new Error("No se pudo generar una respuesta");
   }
 }
