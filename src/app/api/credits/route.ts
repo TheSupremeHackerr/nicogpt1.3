@@ -1,40 +1,41 @@
-"use server";
+import { NextResponse } from 'next/server'
 
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-
-const CREDITS_COOKIE_NAME = 'nicogpt_credits';
-const LAST_RESET_COOKIE_NAME = 'nicogpt_last_reset';
-
-function getAvailableCredits() {
-    const cookieStore = cookies();
-    const credits = parseInt(cookieStore.get(CREDITS_COOKIE_NAME)?.value || '0', 10);
-    return credits;
-}
-
-function getPremiumStatus() {
-    const cookieStore = cookies();
-    return {
-        isPremium: cookieStore.get('nicogpt_premium')?.value === 'true',
-        promoCode: cookieStore.get('nicogpt_promo')?.value || null,
-    };
+export const OPERATION_COSTS = {
+  chat: 1,
+  imageGeneration: 10,
+  musicGeneration: 15,
 }
 
 export async function GET() {
-    try {
-        const credits = getAvailableCredits();
-        const { isPremium, promoCode } = getPremiumStatus();
+  const credits = 50 // Aquí debes manejar el sistema real de créditos (por ejemplo, base de datos)
 
-        return NextResponse.json({
-            credits,
-            isPremium,
-            promoCode
-        });
-    } catch (error) {
-        console.error('Error obteniendo créditos:', error);
-        return NextResponse.json(
-            { error: 'Error al obtener los créditos' },
-            { status: 500 }
-        );
-    }
+  return NextResponse.json({
+    credits,
+  })
 }
+
+export async function POST(req: Request) {
+  const body = await req.json()
+  const { action } = body
+
+  let newCredits = 50 // Maneja aquí la actualización de créditos
+
+  switch (action) {
+    case 'consume':
+      newCredits -= OPERATION_COSTS.chat
+      break
+    case 'image':
+      newCredits -= OPERATION_COSTS.imageGeneration
+      break
+    case 'music':
+      newCredits -= OPERATION_COSTS.musicGeneration
+      break
+    default:
+      break
+  }
+
+  return NextResponse.json({
+    credits: newCredits,
+  })
+}
+
