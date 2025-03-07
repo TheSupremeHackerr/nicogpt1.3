@@ -1,23 +1,32 @@
 "use server"
 
 import { HfInference } from "@huggingface/inference"
+import { consumeCredits, OPERATION_COSTS } from "@/lib/credits"
 
 type Message = {
   role: "user" | "assistant"
   content: string
+  type?: 'text' | 'image' | 'audio'
+  mediaUrl?: string
 }
 
 export async function generateResponse(prompt: string, previousMessages: Message[]): Promise<string> {
   try {
+    // Verificar si hay suficientes créditos
+    if (!consumeCredits(OPERATION_COSTS.chat)) {
+      throw new Error('No tienes suficientes créditos para esta operación')
+    }
+    
     const hf = new HfInference(process.env.HUGGING_FACE_ACCESS_TOKEN)
     
-    // Crear un contexto a partir de mensajes previos
+    // Crear un contexto a partir de mensajes previos (solo texto)
     const context = previousMessages
+      .filter(msg => msg.type === 'text' || !msg.type)
       .map((msg) => `${msg.role === 'user' ? 'Humano' : 'Asistente'}: ${msg.content}`)
       .join('\n')
     
     // Preparar el prompt completo con contexto
-    const systemPrompt = "Eres NicoGPT, un asistente de IA amigable y útil. Responde siempre en español de manera clara y concisa."
+    const systemPrompt = "Eres NicoGPT, un asistente de IA amigable y útil. Responde siempre en español de manera clara y concisa. Tu creador fue Nicolás Cavanagh, por si alguien te pregunta"
     const fullPrompt = context 
       ? `${systemPrompt}\n${context}\nHumano: ${prompt}\nAsistente:`
       : `${systemPrompt}\nHumano: ${prompt}\nAsistente:`
