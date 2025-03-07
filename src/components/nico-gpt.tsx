@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,32 +31,14 @@ export default function NicoGPT() {
     fetchCredits()
   }, [])
 
-const fetchCredits = async () => {
-  try {
-    const response = await fetch('/api/credits')
-    const data = await response.json()
-    setCredits(data.credits)
-  } catch (error) {
-    console.error('Error fetching credits:', error)
-  }
-}
-
-const consumeCredits = async (action: string) => {
-  try {
-    const response = await fetch('/api/credits', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action }),
-    })
-    const data = await response.json()
-    setCredits(data.credits)
-  } catch (error) {
-    console.error('Error consuming credits:', error)
-  }
-}
-
+  const fetchCredits = async () => {
+    try {
+      const response = await fetch('/api/credits')
+      const data = await response.json()
+      setCredits(data.credits)
+    } catch (error) {
+      console.error('Error fetching credits:', error)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -233,98 +213,33 @@ const consumeCredits = async (action: string) => {
                       <img 
                         src={message.mediaUrl || "/placeholder.svg"} 
                         alt="Imagen generada" 
-                        className="rounded-md max-w-full h-auto"
+                        className="rounded-md max-w-full" 
                       />
                     </div>
                   )}
                   {message.type === 'audio' && message.mediaUrl && (
-                    <div className="mt-2">
-                      <audio 
-                        controls 
-                        src={message.mediaUrl} 
-                        className="w-full"
-                      />
-                    </div>
+                    <audio controls>
+                      <source src={message.mediaUrl} />
+                    </audio>
                   )}
                 </div>
-                {message.role === 'user' && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>Tú</AvatarFallback>
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  </Avatar>
-                )}
               </div>
             ))
-          )}
-          {isLoading && (
-            <div className="flex items-start gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>AI</AvatarFallback>
-                <AvatarImage src="/api/logo" />
-              </Avatar>
-              <div className="rounded-lg px-4 py-2 max-w-[80%] bg-muted text-foreground">
-                <p className="animate-pulse">Pensando...</p>
-              </div>
-            </div>
           )}
           <div ref={messagesEndRef} />
         </div>
       </CardContent>
       <CardFooter>
-        <form onSubmit={handleSubmit} className="w-full space-y-2">
-          <Tabs 
-            defaultValue="chat" 
-            className="w-full"
-            value={activeTab}
-            onValueChange={setActiveTab}
-          >
-            <TabsList className="grid grid-cols-3 mb-2">
-              <TabsTrigger value="chat">Chat</TabsTrigger>
-              <TabsTrigger value="image">Imágenes</TabsTrigger>
-              <TabsTrigger value="music">Música</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="chat" className="mt-0">
-              <div className="text-xs text-muted-foreground mb-2">
-                Costo: 1 crédito
-              </div>
-            </TabsContent>
-            <TabsContent value="image" className="mt-0">
-              <div className="text-xs text-muted-foreground mb-2">
-                Costo: 10 créditos - Describe la imagen que quieres generar
-              </div>
-            </TabsContent>
-            <TabsContent value="music" className="mt-0">
-              <div className="text-xs text-muted-foreground mb-2">
-                Costo: 15 créditos - Describe la música que quieres generar
-              </div>
-            </TabsContent>
-          </Tabs>
-          
-          <div className="flex gap-2">
-            <Input
-              placeholder={
-                activeTab === 'chat' 
-                  ? "Escribe tu mensaje..." 
-                  : activeTab === 'image' 
-                    ? "Describe la imagen que quieres crear..." 
-                    : "Describe la música que quieres generar..."
-              }
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button type="submit" disabled={isLoading || !input.trim()}>
-              {activeTab === 'chat' ? (
-                <SendIcon className="h-4 w-4" />
-              ) : activeTab === 'image' ? (
-                <ImageIcon className="h-4 w-4" />
-              ) : (
-                <MusicIcon className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+        <form onSubmit={handleSubmit} className="flex items-center gap-2 w-full">
+          <Input
+            placeholder="Escribe tu mensaje..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={isLoading}
+          />
+          <Button type="submit" disabled={isLoading || !input.trim()}>
+            <SendIcon className="h-5 w-5" />
+          </Button>
         </form>
       </CardFooter>
     </Card>
