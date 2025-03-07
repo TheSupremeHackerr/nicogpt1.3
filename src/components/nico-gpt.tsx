@@ -9,7 +9,6 @@ import { SendIcon, RefreshCwIcon, ImageIcon, MusicIcon } from 'lucide-react'
 import { generateResponse } from '@/server/actions'
 import NicoGPTLogo from './nico-gpt-logo'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { consumeCredits, OPERATION_COSTS } from '@/lib/credits'
 import { toast } from '@/components/ui/use-toast'
 import { Toaster } from '@/components/ui/toaster'
 
@@ -20,6 +19,13 @@ type Message = {
   mediaUrl?: string
 }
 
+// Defino las constantes de costos de operación aquí para que no dependan de código del servidor.
+const OPERATION_COSTS = {
+  chat: 1,
+  imageGeneration: 10,
+  musicGeneration: 15,
+}
+
 export default function NicoGPT() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -28,7 +34,7 @@ export default function NicoGPT() {
   const [credits, setCredits] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Cargar créditos al inicio
+  // Cargar créditos al iniciar
   useEffect(() => {
     fetchCredits()
   }, [])
@@ -47,7 +53,7 @@ export default function NicoGPT() {
     e.preventDefault()
     if (!input.trim()) return
 
-    // Verificar si hay suficientes créditos para el tipo de operación
+    // Seleccionar el costo según la pestaña activa
     let cost = OPERATION_COSTS.chat
     if (activeTab === 'image') {
       cost = OPERATION_COSTS.imageGeneration
@@ -55,7 +61,7 @@ export default function NicoGPT() {
       cost = OPERATION_COSTS.musicGeneration
     }
 
-    // Verificar créditos
+    // Verificar créditos haciendo una petición a la API
     try {
       const response = await fetch('/api/credits')
       const data = await response.json()
@@ -84,30 +90,23 @@ export default function NicoGPT() {
       if (activeTab === 'chat') {
         // Generar respuesta de chat
         const response = await generateResponse(userMessage.content, messages)
-        setMessages((prev) => [...prev, { 
-          role: 'assistant', 
-          content: response,
-          type: 'text'
-        }])
+        setMessages((prev) => [
+          ...prev, 
+          { role: 'assistant', content: response, type: 'text' }
+        ])
       } else if (activeTab === 'image') {
         // Generar imagen
         const response = await fetch('/api/image', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: input }),
         })
-        
         const data = await response.json()
-        
         if (response.ok) {
-          setMessages((prev) => [...prev, { 
-            role: 'assistant', 
-            content: `Imagen generada para: "${input}"`,
-            type: 'image',
-            mediaUrl: data.image
-          }])
+          setMessages((prev) => [
+            ...prev, 
+            { role: 'assistant', content: `Imagen generada para: "${input}"`, type: 'image', mediaUrl: data.image }
+          ])
         } else {
           throw new Error(data.error)
         }
@@ -115,37 +114,27 @@ export default function NicoGPT() {
         // Generar música
         const response = await fetch('/api/music', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: input }),
         })
-        
         const data = await response.json()
-        
         if (response.ok) {
-          setMessages((prev) => [...prev, { 
-            role: 'assistant', 
-            content: `Música generada para: "${input}"`,
-            type: 'audio',
-            mediaUrl: data.audio
-          }])
+          setMessages((prev) => [
+            ...prev, 
+            { role: 'assistant', content: `Música generada para: "${input}"`, type: 'audio', mediaUrl: data.audio }
+          ])
         } else {
           throw new Error(data.error)
         }
       }
       
-      // Actualizar créditos después de la operación
+      // Actualizar créditos luego de la operación
       fetchCredits()
     } catch (error) {
       console.error('Error generating response:', error)
       setMessages((prev) => [
         ...prev,
-        { 
-          role: 'assistant', 
-          content: 'Lo siento, encontré un error. Por favor, intenta de nuevo.',
-          type: 'text'
-        },
+        { role: 'assistant', content: 'Lo siento, encontré un error. Por favor, intenta de nuevo.', type: 'text' },
       ])
     } finally {
       setIsLoading(false)
