@@ -305,12 +305,10 @@ export default function NicoGPT() {
               ) : (
                 <MusicIcon className="h-4 w-4" />
               )}
-              <span className="sr-only">Enviar</span>
             </Button>
           </div>
         </form>
       </CardFooter>
-      <Toaster />
     </Card>
   )
 }
