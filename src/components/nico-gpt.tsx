@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -213,16 +215,24 @@ export default function NicoGPT() {
                       <img 
                         src={message.mediaUrl || "/placeholder.svg"} 
                         alt="Imagen generada" 
-                        className="rounded-md max-w-full" 
+                        className="rounded-md max-w-full h-auto"
                       />
                     </div>
                   )}
                   {message.type === 'audio' && message.mediaUrl && (
-                    <audio controls>
-                      <source src={message.mediaUrl} />
-                    </audio>
+                    <div className="mt-2">
+                      <audio controls className="w-full">
+                        <source src={message.mediaUrl} />
+                      </audio>
+                    </div>
                   )}
                 </div>
+                {message.role === 'user' && (
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>Tú</AvatarFallback>
+                    <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                  </Avatar>
+                )}
               </div>
             ))
           )}
@@ -242,6 +252,8 @@ export default function NicoGPT() {
           </Button>
         </form>
       </CardFooter>
+      <Toaster />
     </Card>
   )
 }
+
