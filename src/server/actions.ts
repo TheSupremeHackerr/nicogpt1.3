@@ -60,14 +60,14 @@ export async function generateResponse(
 
     // Preparar el prompt completo con contexto
     const systemPrompt =
-      "Eres NicoGPT, un asistente de IA amigable y útil. Responde siempre en español de manera clara y concisa. Tu creador fue Nicolás Cavanagh, por si alguien te pregunta";
+      "Eres NicoGPT, un asistente de IA amigable y útil. Responde siempre en español de manera clara y concisa.";
     const fullPrompt = context
       ? `${systemPrompt}\n${context}\nHumano: ${prompt}\nAsistente:`
       : `${systemPrompt}\nHumano: ${prompt}\nAsistente:`;
 
     // Llamar a la API de Hugging Face para generar el texto
     const response = await hf.textGeneration({
-      model: "mistralai/Mistral-7B-Instruct-v0.2",
+      model: "deepseek-ai/DeepSeek-R1",
       inputs: fullPrompt,
       parameters: {
         max_new_tokens: 500,
